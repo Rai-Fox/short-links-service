@@ -7,6 +7,9 @@ mkdir app
 mkdir app/api
 mkdir app/api/v1
 mkdir app/api/v1/endpoints
+mkdir app/api/v1/schemas
+mkdir app/api/v1/services
+mkdir app/api/v1/dependencies
 mkdir app/core
 mkdir app/db
 mkdir app/db/models
@@ -134,9 +137,16 @@ SECRET_KEY=your_secret_key
 EOL
 
 # Оставшиеся файлы
-
-touch app/api/v1/endpoints/routers.py
-touch app/api/dependencies.py
+touch app/api/v1/__init__.py
+touch app/api/v1/endpoints/__init__.py
+touch app/api/v1/schemas/__init__.py
+touch app/api/v1/services/__init__.py
+touch app/api/v1/dependencies/__init__.py
+touch app/tests/__init__.py
+touch app/tests/api/__init__.py
+touch app/tests/db/__init__.py
+touch app/tests/services/__init__.py
+touch app/core/__init__.py
 touch app/core/utils.py
 touch app/db/base.py
 touch app/db/models/__init__.py
