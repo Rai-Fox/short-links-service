@@ -20,9 +20,11 @@ services:
       - DATABASE_NAME=links_db
       - REDIS_HOST=redis
       - REDIS_PORT=6379
+      - JWT_SECRET_KEY=/run/secrets/jwt_secret_key
     secrets:
        - db_user
        - db_password
+       - jwt_secret_key
     depends_on:
       - db
       - redis
@@ -64,6 +66,8 @@ networks:
 
 secrets:
   db_password:
-    environment: DATABASE_USER
+    file: ./secrets/db_password.txt
   db_user:
-    environment: DATABASE_PASSWORD
+    file: ./secrets/db_user.txt
+  jwt_secret_key:
+    file: ./secrets/jwt_secret_key.txt

@@ -10,6 +10,7 @@ docker-compose up --build
 Создайте файл `.env` и добавьте в него:
 
 ```
-DATABASE_URL=postgresql+asyncpg://user:password@db/fastapi_db
+DATABASE_USER=<username>
+DATABASE_PASSWORD=<postgres_password>
 SECRET_KEY=your_secret_key
 ```
