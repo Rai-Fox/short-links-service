@@ -16,10 +16,10 @@ mkdir app/db/models
 mkdir app/db/repositories
 mkdir app/schemas
 mkdir app/services
-mkdir app/tests
-mkdir app/tests/api
-mkdir app/tests/db
-mkdir app/tests/services
+mkdir tests
+mkdir tests/api
+mkdir tests/db
+mkdir tests/services
 mkdir migrations
 mkdir scripts
 
@@ -137,22 +137,26 @@ SECRET_KEY=your_secret_key
 EOL
 
 # Оставшиеся файлы
+touch app/api/__init__.py
 touch app/api/v1/__init__.py
 touch app/api/v1/endpoints/__init__.py
 touch app/api/v1/schemas/__init__.py
 touch app/api/v1/services/__init__.py
 touch app/api/v1/dependencies/__init__.py
-touch app/tests/__init__.py
-touch app/tests/api/__init__.py
-touch app/tests/db/__init__.py
-touch app/tests/services/__init__.py
 touch app/core/__init__.py
 touch app/core/utils.py
+touch app/db/__init__.py
 touch app/db/base.py
 touch app/db/models/__init__.py
 touch app/db/repositories/__init__.py
 touch app/schemas/__init__.py
 touch app/services/__init__.py
+
+touch tests/__init__.py
+touch tests/api/__init__.py
+touch tests/db/__init__.py
+touch tests/services/__init__.py
+
 touch .env .gitignore
 
 # Done
