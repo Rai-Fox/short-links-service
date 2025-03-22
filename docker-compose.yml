@@ -1,26 +1,69 @@
-version: "3.9"
-
 services:
   app:
-    build: .
+    build:
+      context: .
+      dockerfile: Dockerfile
     ports:
       - "8000:8000"
     env_file:
       - .env
+    environment:
+      - FASTAPI_HOST=0.0.0.0
+      - FASTAPI_PORT=8000
+      - APP_NAME="Short Links Service"
+      - APP_VERSION=1.0.0
+      - APP_DESCRIPTION="A service to shorten links"
+      - DATABASE_HOST=db
+      - DATABASE_PORT=5432
+      - DATABASE_USER=/run/secrets/db_user
+      - DATABASE_PASSWORD=/run/secrets/db_password
+      - DATABASE_NAME=links_db
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+    secrets:
+       - db_user
+       - db_password
     depends_on:
       - db
       - redis
+    networks:
+      - app_network
 
   db:
     image: postgres:15-alpine
+    container_name: db
     environment:
-      POSTGRES_USER: user
-      POSTGRES_PASSWORD: password
+      POSTGRES_USER: /run/secrets/db_user
+      POSTGRES_PASSWORD: /run/secrets/db_password
+      DATABASE_NAME: links_db
       POSTGRES_DB: fastapi_db
+    secrets:
+       - db_user
+       - db_password
     ports:
       - "5432:5432"
+    networks:
+      - app_network
 
   redis:
     image: redis:7-alpine
+    container_name: redis
+    environment:
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
     ports:
       - "6379:6379"
+    networks:
+      - app_network
+
+
+networks:
+  app_network:
+    driver: bridge
+
+
+secrets:
+  db_password:
+    environment: DATABASE_USER
+  db_user:
+    environment: DATABASE_PASSWORD

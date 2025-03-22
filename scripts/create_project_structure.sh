@@ -14,8 +14,6 @@ mkdir app/core
 mkdir app/db
 mkdir app/db/models
 mkdir app/db/repositories
-mkdir app/schemas
-mkdir app/services
 mkdir tests
 mkdir tests/api
 mkdir tests/db
@@ -26,7 +24,7 @@ mkdir scripts
 # Файлы с начальными шаблонами
 
 # app/main.py
-cat <<EOL > app/main.py
+cat <<EOL >app/main.py
 from fastapi import FastAPI
 
 app = FastAPI()
@@ -37,7 +35,7 @@ def read_root():
 EOL
 
 # app/core/config.py
-cat <<EOL > app/core/config.py
+cat <<EOL >app/core/config.py
 from pydantic_settings import BaseSettings
 
 class Settings(BaseSettings):
@@ -51,7 +49,7 @@ settings = Settings()
 EOL
 
 # app/core/security.py
-cat <<EOL > app/core/security.py
+cat <<EOL >app/core/security.py
 from passlib.context import CryptContext
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
@@ -61,7 +59,7 @@ def get_password_hash(password: str) -> str:
 EOL
 
 # Dockerfile
-cat <<EOL > Dockerfile
+cat <<EOL >Dockerfile
 FROM python:3.11-slim
 
 WORKDIR /app
@@ -75,7 +73,7 @@ CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
 EOL
 
 # docker-compose.yml
-cat <<EOL > docker-compose.yml
+cat <<EOL >docker-compose.yml
 version: "3.9"
 
 services:
@@ -105,7 +103,7 @@ services:
 EOL
 
 # requirements.txt
-cat <<EOL > requirements.txt
+cat <<EOL >requirements.txt
 fastapi
 uvicorn[standard]
 sqlalchemy
@@ -118,7 +116,7 @@ redis
 EOL
 
 # README.md
-cat <<EOL > README.md
+cat <<EOL >README.md
 # FastAPI Project
 
 ## Запуск проекта
@@ -145,12 +143,11 @@ touch app/api/v1/services/__init__.py
 touch app/api/v1/dependencies/__init__.py
 touch app/core/__init__.py
 touch app/core/utils.py
+touch app/core/logging.py
 touch app/db/__init__.py
 touch app/db/base.py
 touch app/db/models/__init__.py
 touch app/db/repositories/__init__.py
-touch app/schemas/__init__.py
-touch app/services/__init__.py
 
 touch tests/__init__.py
 touch tests/api/__init__.py
