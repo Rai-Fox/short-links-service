@@ -24,12 +24,3 @@ class UserInDB(UserBase):
 
     def verify_password(self, password: str) -> bool:
         return verify_password(password, self.hashed_password)
-
-
-class Token(BaseModel):
-    access_token: str
-    token_type: str
-
-
-class TokenData(BaseModel):
-    username: str | None = None

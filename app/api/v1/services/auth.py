@@ -1,8 +1,8 @@
 from fastapi import Depends
 
 from core.logging import get_logger
-from core.security import create_access_token
-from api.v1.schemas.auth import UserRegister, UserLogin, Token, UserInDB
+from core.security import create_access_token, Token
+from api.v1.schemas.auth import UserRegister, UserLogin, UserInDB
 from api.v1.exceptions.auth import UserAlreadyExistsException, InvalidCredentialsException, UserNotFoundException
 from db.repositories.users import UsersRepository, get_users_repository
 from db.models.users import User
@@ -28,11 +28,13 @@ class AuthService:
 
     async def login_user(self, user: UserLogin) -> Token:
         logger.info(f"Logging in user: {user.username}")
-        db_user: UserInDB = await self.users_repository.get_by_username(user.username)
+        db_user: dict = await self.users_repository.get_by_username(user.username)
 
         if not db_user:
             logger.warning(f"User {user.username} not found")
             raise UserNotFoundException(f"User {user.username} not found")
+
+        db_user: UserInDB = UserInDB(**db_user)
 
         if not db_user.verify_password(user.password):
             logger.warning(f"Invalid credentials for user {user.username}")

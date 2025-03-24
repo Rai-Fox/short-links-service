@@ -1,7 +1,6 @@
 from sqlalchemy import Column, String
 
 from db.models.base import Base
-from core.security import get_password_hash
 
 
 class User(Base):

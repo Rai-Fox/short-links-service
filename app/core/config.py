@@ -51,6 +51,7 @@ class DatabaseSettings(BaseSettings):
     ASYNC_DRIVER: str = "asyncpg"
     POOL_SIZE: int = 5
     MAX_OVERFLOW: int = 10
+    ECHO: bool = True
 
     @property
     def CONNECTION_URL(self) -> str:
@@ -83,12 +84,27 @@ class JWTSettings(BaseSettings):
         env_prefix = "JWT_"
 
 
+class LinksServiceSettings(BaseSettings):
+    GENERATE_SHORT_CODE_RETRIES: int = 5
+    SHORT_CODE_LENGTH: int = 6
+    CLEANUP_LINKS_INTERVAL: int = 30  # in seconds
+    UNUSED_LINKS_THRESHOLD: int = 5 # in minutes
+
+    class Config:
+        env_file = ".env"
+        env_file_encoding = "utf-8"
+        env_nested_delimiter = "__"
+        extra = "ignore"
+        env_prefix = "LINKS_SERVICE_"
+
+
 class Settings(BaseSettings):
     app_setings: AppSettings = AppSettings()
     fastapi_settings: FastAPISettings = FastAPISettings()
     # redis_settings: RedisSettings = RedisSettings()
     db_settings: DatabaseSettings = DatabaseSettings()
     jwt_settings: JWTSettings = JWTSettings()
+    links_service_settings: LinksServiceSettings = LinksServiceSettings()
 
     class Config:
         env_file = ".env"

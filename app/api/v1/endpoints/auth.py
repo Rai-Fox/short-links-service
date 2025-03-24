@@ -1,7 +1,6 @@
 from fastapi import Depends, APIRouter, HTTPException
 
 from api.v1.schemas.auth import (
-    Token,
     UserLogin,
     UserRegister,
 )
@@ -9,6 +8,7 @@ from api.v1.services.auth import AuthService
 from api.v1.exceptions.auth import InvalidCredentialsException, UserNotFoundException, UserAlreadyExistsException
 from api.v1.dependencies.auth import get_auth_service
 from core.logging import get_logger
+from core.security import Token
 
 logger = get_logger(__name__)
 

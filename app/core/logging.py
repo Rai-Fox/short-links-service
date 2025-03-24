@@ -25,36 +25,14 @@ class CustomFormatter(logging.Formatter):
         return formatter.format(record)
 
 
-logging_config = {
-    "version": 1,
-    "disable_existing_loggers": False,
-    "formatters": {
-        "simple": {
-            "()": CustomFormatter,
-            "format": "%(asctime)s - %(name)s - %(levelname)s - %(message)s (%(filename)s:%(lineno)d)",
-        },
-        "verbose": {
-            "()": CustomFormatter,
-            "format": "%(asctime)s - %(name)s - %(levelname)s - %(message)s (%(filename)s:%(lineno)d)",
-        },
-    },
-    "handlers": {
-        "console": {
-            "class": "logging.StreamHandler",
-            "formatter": "simple",
-        },
-    },
-    "loggers": {
-        "myapp": {
-            "handlers": ["console"],
-            "level": "DEBUG",
-            "propagate": False,
-        },
-    },
-}
-
-
 def get_logger(name: str) -> logging.Logger:
-    logging.config.dictConfig(logging_config)
-    logging.getLogger('passlib').setLevel(logging.ERROR)
-    return logging.getLogger(name)
+    """
+    Get a logger with the specified name.
+    """
+    logger = logging.getLogger(name)
+    if not logger.hasHandlers():
+        handler = logging.StreamHandler()
+        handler.setFormatter(CustomFormatter())
+        logger.addHandler(handler)
+        logger.setLevel(logging.DEBUG)
+    return logger

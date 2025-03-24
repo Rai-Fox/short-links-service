@@ -1,6 +1,3 @@
-from sqlalchemy.orm import Session
-
-from api.v1.schemas.auth import UserInDB
 from db.repositories.base import BaseRepository
 from db.models.users import User
 
@@ -10,7 +7,7 @@ logger = get_logger(__name__)
 
 
 class UsersRepository(BaseRepository):
-    async def get_by_username(self, username: str) -> User | None:
+    async def get_by_username(self, username: str) -> dict | None:
         """
         Get a user by username.
         """
@@ -18,7 +15,7 @@ class UsersRepository(BaseRepository):
             with session.begin():
                 logger.debug(f"Fetching user with username: {username}")
                 user = session.query(User).filter(User.username == username).first()
-                return UserInDB(**user.__dict__) if user else None
+                return user.__dict__ if user else None
 
     async def create_user(self, username: str, hashed_password: str) -> User:
         """

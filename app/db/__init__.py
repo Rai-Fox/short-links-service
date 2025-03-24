@@ -14,7 +14,7 @@ logger = get_logger(__name__)
 def get_engine() -> Engine:
     engine = create_engine(
         get_settings().db_settings.CONNECTION_URL,
-        echo=True,
+        echo=get_settings().db_settings.ECHO,
         pool_size=get_settings().db_settings.POOL_SIZE,
         max_overflow=get_settings().db_settings.MAX_OVERFLOW,
     )
@@ -24,7 +24,7 @@ def get_engine() -> Engine:
 def get_async_engine() -> AsyncEngine:
     engine = create_async_engine(
         get_settings().db_settings.ASYNC_CONNECTION_URL,
-        echo=True,
+        echo=get_settings().db_settings.ECHO,
         pool_size=get_settings().db_settings.POOL_SIZE,
         max_overflow=get_settings().db_settings.MAX_OVERFLOW,
     )

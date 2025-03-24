@@ -2,8 +2,19 @@ from datetime import datetime, timedelta, timezone
 
 from authx import AuthX, AuthXConfig
 from passlib.context import CryptContext
+from pydantic import BaseModel
 
 from core.config import get_settings
+from db.repositories.users import get_users_repository
+
+
+class Token(BaseModel):
+    access_token: str
+    token_type: str
+
+
+class TokenData(BaseModel):
+    username: str | None = None
 
 
 auth_config = AuthXConfig(
@@ -20,7 +31,14 @@ pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 
 def get_security() -> AuthX:
-    return AuthX(config=auth_config)
+    security = AuthX(config=auth_config)
+
+    @security.set_subject_getter
+    def get_user_from_username(username) -> TokenData:
+        user = get_users_repository().get_by_username(username)
+        return TokenData(username=user.username) if user else None
+
+    return security
 
 
 def create_access_token(username: str, expires_delta: int | None = None, security: AuthX = get_security()) -> str:
