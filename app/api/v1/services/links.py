@@ -55,6 +55,9 @@ class LinksService:
 
         for attempt in range(self.generate_short_code_retries):
             short_code = await self._generate_short_code(original_url)
+            if short_code == "search" or short_code == "expired":
+                logger.error(f"Generated short code {short_code} is invalid. Retrying...")
+                continue
             existring_link = await self.links_repository.get_link(short_code)
             if existring_link:
                 logger.warning(f"Short link {short_code} already exists. Retrying...")

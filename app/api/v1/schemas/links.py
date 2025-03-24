@@ -24,10 +24,10 @@ class LinkCreate(BaseModel):
             raise ValueError("custom_alias must be alphanumeric")
         if len(value) < 3 or len(value) > 20:
             raise ValueError("custom_alias must be between 3 and 20 characters")
-        if not value[0].isalpha():
-            raise ValueError("custom_alias must start with a letter")
-        # if value.lower() == "shorten":
-        #     raise ValueError("custom_alias cannot be 'shorten'")
+        if value.lower() == "search":
+            raise ValueError("custom_alias cannot be 'search'")
+        if value.lower() == "expired":
+            raise ValueError("custom_alias cannot be 'expired'")
 
         return value
 
