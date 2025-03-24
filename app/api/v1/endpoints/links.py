@@ -102,6 +102,10 @@ async def get_short_code(
     """
     Redirect to the original URL using the short link.
     """
+    cache_data = links_service.get_original_link_from_cache(short_code)
+    if cache_data:
+        return RedirectResponse(url=cache_data.original_url)
+
     try:
         return await links_service.get_original_link(short_code)
     except ShortLinkNotFoundException:

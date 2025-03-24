@@ -7,6 +7,7 @@ from db.models.links import Link
 from db.repositories.base import BaseRepository
 from core.logging import get_logger
 from core.config import get_settings
+from core.redis import get_redis_client
 
 logger = get_logger(__name__)
 
@@ -178,21 +179,47 @@ class LinksRepository(BaseRepository):
         with self.get_connection() as session:
             with session.begin():
                 logger.debug("Checking for expired links")
-                session.query(Link).filter(Link.expires_at.is_not(None), Link.expires_at < func.now()).update(
-                    {"is_active": False, "expires_at": None, "updated_at": datetime.now(timezone.utc)}
+                removed_short_codes = (
+                    session.query(Link)
+                    .filter(Link.expires_at.is_not(None), Link.expires_at < func.now())
+                    .update(
+                        {
+                            "is_active": False,
+                            "expires_at": None,
+                            "updated_at": datetime.now(timezone.utc),
+                        },
+                        synchronize_session=False,
+                    )
+                    .returning(Link.short_code)
+                    .all()
                 )
+                print(removed_short_codes)
+                return [code["short_code"] for code in removed_short_codes]
 
-    async def check_expired_links(self) -> None:
+    async def check_unused_links(self) -> None:
         """
         Проверить и удалить просроченные ссылки.
         """
         with self.get_connection() as session:
             with session.begin():
                 logger.debug("Checking for expired links")
-                session.query(Link).filter(
-                    Link.last_used_at.is_not(None),
-                    Link.last_used_at < datetime.now(timezone.utc) - timedelta(minutes=self.unused_cleanup_time),
-                ).update({"is_active": False, "expires_at": None, "updated_at": datetime.now(timezone.utc)})
+                removed_short_codes = (
+                    session.query(Link)
+                    .filter(
+                        Link.last_used_at.is_not(None),
+                        Link.last_used_at < datetime.now(timezone.utc) - timedelta(minutes=self.unused_cleanup_time),
+                    )
+                    .update(
+                        {
+                            "is_active": False,
+                            "expires_at": None,
+                            "updated_at": datetime.now(timezone.utc),
+                        }
+                    )
+                    .returning(Link.short_code)
+                    .all()
+                )
+                return [code["short_code"] for code in removed_short_codes]
 
     async def get_expired_links(self) -> list[dict]:
         """
@@ -225,9 +252,13 @@ async def clean_up_expired_links():
     Запланированная задача для очистки просроченных ссылок.
     """
     links_repository = get_links_repository()
+    redis_client = get_redis_client()
     while True:
         await asyncio.sleep(get_settings().links_service_settings.CLEANUP_LINKS_INTERVAL)
-        await links_repository.check_expired_links()
+        removed_codes = await links_repository.check_expired_links()
+        for code in removed_codes:
+            logger.debug(f"Deleting expired link with short_code: {code}")
+            redis_client.delete(code)
 
 
 async def clean_up_unused_links():
@@ -235,6 +266,10 @@ async def clean_up_unused_links():
     Запланированная задача для очистки неиспользуемых ссылок.
     """
     links_repository = get_links_repository()
+    redis_client = get_redis_client()
     while True:
         await asyncio.sleep(get_settings().links_service_settings.CLEANUP_LINKS_INTERVAL)
-        await links_repository.check_unused_links()
+        removed_codes = await links_repository.check_unused_links()
+        for code in removed_codes:
+            logger.debug(f"Deleting unused link with short_code: {code}")
+            redis_client.delete(code)

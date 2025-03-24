@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timezone
 import uuid
 
 from fastapi import Depends
@@ -24,8 +24,8 @@ from api.v1.exceptions.links import (
 )
 from db.repositories.links import LinksRepository
 from core.config import get_settings
+from core.redis import get_redis_client
 from core.logging import get_logger
-from core.security import TokenData
 
 logger = get_logger(__name__)
 
@@ -33,6 +33,7 @@ logger = get_logger(__name__)
 class LinksService:
     def __init__(self, links_repository: LinksRepository):
         self.links_repository: LinksRepository = links_repository
+        self.redis_cache = get_redis_client()
         self.generate_short_code_retries = get_settings().links_service_settings.GENERATE_SHORT_CODE_RETRIES
         self.short_code_length = get_settings().links_service_settings.SHORT_CODE_LENGTH
 
@@ -106,13 +107,15 @@ class LinksService:
 
     async def get_original_link(self, short_code: str) -> RedirectResponse:
         logger.info(f"Retrieving original link for short URL: {short_code}")
-        original_url = await self.links_repository.get_link(short_code)
-        if not original_url:
+        existing_link = await self.links_repository.get_link(short_code)
+        if not existing_link:
             logger.error(f"Short link {short_code} not found.")
             raise ShortLinkNotFoundException(detail=f"Short link {short_code} not found.")
         await self.links_repository.record_click(short_code)
-        original_url = original_url["original_url"]
+        original_url = existing_link["original_url"]
         logger.info(f"Redirecting to original URL: {original_url}")
+        # Set the link to cache
+        self.set_link_to_cache(short_code, LinkInDB(**existing_link))
         return RedirectResponse(url=original_url)
 
     async def update_link(
@@ -136,6 +139,14 @@ class LinksService:
                 new_expires_at=new_expires_at,
                 updated_by=updated_by,
             )
+
+            # Update the link in cache
+            if new_original_url:
+                existing_link["original_url"] = new_original_url
+            if new_expires_at:
+                existing_link["expires_at"] = new_expires_at
+            self.set_link_to_cache(short_code, LinkInDB(**existing_link))
+
             logger.info(f"Link {short_code} updated successfully.")
         except PermissionError:
             logger.error(f"User {updated_by} is not authorized to update this link.")
@@ -153,6 +164,10 @@ class LinksService:
 
         try:
             await self.links_repository.delete_link(short_code=short_code, delete_by=delete_by)
+
+            # Remove the link from cache
+            self.redis_cache.delete(short_code)
+
             logger.info(f"Link {short_code} deleted successfully.")
         except Exception as e:
             logger.error(f"Failed to delete link {short_code}: {str(e)}")
@@ -183,3 +198,37 @@ class LinksService:
             return ExpiredLinksResponse(expired_links=[])
 
         return ExpiredLinksResponse(expired_links=[Link(**link) for link in expired_links])
+
+    def get_original_link_from_cache(self, short_code: str) -> LinkInDB | None:
+        """
+        Get a link from the cache.
+        """
+        logger.info(f"Retrieving link from cache for short code: {short_code}")
+        cached_link = self.redis_cache.get(short_code)
+
+        if not cached_link:
+            logger.warning(f"No link found in cache for short code: {short_code}")
+            return None
+
+        logger.info(f"Link found in cache for short code: {short_code}")
+
+        if isinstance(cached_link, str):
+            cached_link = LinkInDB.model_validate_json(cached_link)
+            return cached_link
+
+        return LinkInDB(**cached_link)
+
+    def set_link_to_cache(self, short_code: str, link: LinkInDB) -> None:
+        """
+        Set a link to the cache.
+        """
+        logger.info(f"Setting link to cache for short code: {short_code}")
+        if not link.expires_at:
+            expires = get_settings().redis_settings.EXPIRES_IN_SECONDS
+        else:
+            expires = link.expires_at.timestamp() - datetime.now(timezone.utc).timestamp()
+        if expires <= 0:
+            logger.warning(f"Link {short_code} has already expired. Not setting to cache.")
+            return
+        self.redis_cache.set(short_code, link.model_dump_json(), ex=expires)
+        logger.info(f"Link set to cache for short code: {short_code}")

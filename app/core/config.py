@@ -31,6 +31,8 @@ class FastAPISettings(BaseSettings):
 class RedisSettings(BaseSettings):
     HOST: str
     PORT: int
+    DB: int = 0
+    EXPIRES_IN_SECONDS: int = 5 * 60
 
     class Config:
         env_file = ".env"
@@ -101,7 +103,7 @@ class LinksServiceSettings(BaseSettings):
 class Settings(BaseSettings):
     app_setings: AppSettings = AppSettings()
     fastapi_settings: FastAPISettings = FastAPISettings()
-    # redis_settings: RedisSettings = RedisSettings()
+    redis_settings: RedisSettings = RedisSettings()
     db_settings: DatabaseSettings = DatabaseSettings()
     jwt_settings: JWTSettings = JWTSettings()
     links_service_settings: LinksServiceSettings = LinksServiceSettings()
