@@ -21,13 +21,17 @@ services:
       - REDIS_HOST=redis
       - REDIS_PORT=6379
       - JWT_SECRET_KEY=/run/secrets/jwt_secret_key
+      - JWT_ALGORITHM=HS256
+      - JWT_ACCESS_TOKEN_EXPIRE_MINUTES=5
     secrets:
        - db_user
        - db_password
        - jwt_secret_key
     depends_on:
-      - db
-      - redis
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_started
     networks:
       - app_network
 
@@ -35,15 +39,21 @@ services:
     image: postgres:15-alpine
     container_name: db
     environment:
-      POSTGRES_USER: /run/secrets/db_user
-      POSTGRES_PASSWORD: /run/secrets/db_password
+      POSTGRES_USER_FILE: /run/secrets/db_user
+      POSTGRES_PASSWORD_FILE: /run/secrets/db_password
       DATABASE_NAME: links_db
-      POSTGRES_DB: fastapi_db
+      POSTGRES_DB: links_db
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$(cat /run/secrets/db_user)"]
+      interval: 5s
+      timeout: 5s
+      start_interval: 5s
+      retries: 5
     secrets:
        - db_user
        - db_password
     ports:
-      - "5432:5432"
+      - "5434:5432"
     networks:
       - app_network
 

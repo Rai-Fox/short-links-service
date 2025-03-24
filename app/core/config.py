@@ -1,5 +1,6 @@
 from functools import lru_cache
 from pydantic_settings import BaseSettings
+from pydantic import Field
 
 
 class AppSettings(BaseSettings):
@@ -42,11 +43,25 @@ class RedisSettings(BaseSettings):
 class DatabaseSettings(BaseSettings):
     HOST: str
     PORT: int
-    USER: str
-    PASSWORD: str
-    DB: str
+    USER: str = Field(alias="db_user")
+    PASSWORD: str = Field(alias="db_password")
+    NAME: str
+    TYPE: str = "postgresql"
+    DRIVER: str = "psycopg2"
+    ASYNC_DRIVER: str = "asyncpg"
+    POOL_SIZE: int = 5
+    MAX_OVERFLOW: int = 10
+
+    @property
+    def CONNECTION_URL(self) -> str:
+        return f"{self.TYPE}+{self.DRIVER}://{self.USER}:{self.PASSWORD}@{self.HOST}:{self.PORT}/{self.NAME}"
+
+    @property
+    def ASYNC_CONNECTION_URL(self) -> str:
+        return f"{self.TYPE}+{self.ASYNC_DRIVER}://{self.USER}:{self.PASSWORD}@{self.HOST}:{self.PORT}/{self.NAME}"
 
     class Config:
+        secrets_dir = "/run/secrets"
         env_file = ".env"
         env_file_encoding = "utf-8"
         env_nested_delimiter = "__"
@@ -55,11 +70,12 @@ class DatabaseSettings(BaseSettings):
 
 
 class JWTSettings(BaseSettings):
-    SECRET_KEY: str
-    ALGORITHM: str
-    ACCESS_TOKEN_EXPIRE_MINUTES: int
+    SECRET_KEY: str = Field(alias="jwt_secret_key")
+    ALGORITHM: str = "HS256"
+    ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
 
     class Config:
+        secrets_dir = "/run/secrets"
         env_file = ".env"
         env_file_encoding = "utf-8"
         env_nested_delimiter = "__"
@@ -71,8 +87,8 @@ class Settings(BaseSettings):
     app_setings: AppSettings = AppSettings()
     fastapi_settings: FastAPISettings = FastAPISettings()
     # redis_settings: RedisSettings = RedisSettings()
-    # postgresql_settings: PostgreSQLSettings = PostgreSQLSettings()
-    # jwt_settings: JWTSettings = JWTSettings()
+    db_settings: DatabaseSettings = DatabaseSettings()
+    jwt_settings: JWTSettings = JWTSettings()
 
     class Config:
         env_file = ".env"

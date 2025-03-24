@@ -71,16 +71,6 @@ class Settings(BaseSettings):
 settings = Settings()
 EOL
 
-# app/core/security.py
-cat <<EOL >app/core/security.py
-from passlib.context import CryptContext
-
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
-
-def get_password_hash(password: str) -> str:
-    return pwd_context.hash(password)
-EOL
-
 # app/core/logging.py
 cat <<EOL >app/core/logging.py
 import logging
@@ -142,9 +132,9 @@ services:
     environment:
       - FASTAPI_HOST=0.0.0.0
       - FASTAPI_PORT=8000
-      - APP_NAME="Short Links Service"
+      - APP_NAME="App Name"
       - APP_VERSION=1.0.0
-      - APP_DESCRIPTION="A service to shorten links"
+      - APP_DESCRIPTION="App Description"
       - DATABASE_HOST=db
       - DATABASE_PORT=5432
       - DATABASE_USER=/run/secrets/db_user
@@ -225,16 +215,11 @@ cat <<EOL >README.md
 ## Запуск проекта
 
 \`\`\`bash
-docker-compose up --build
+docker-compose up --build -d
 \`\`\`
 
-## Переменные окружения
-Создайте файл \`.env\` и добавьте в него:
-
-\`\`\`
-DATABASE_URL=postgresql+asyncpg://user:password@db/fastapi_db
-SECRET_KEY=your_secret_key
-\`\`\`
+## Секреты
+Секреты хранятся в папке \`secrets\`. Не забудьте создать файлы \`db_user.txt\`, \`db_password.txt\` и \`jwt_secret_key.txt\` с соответствующими значениями.
 EOL
 
 # .dockerignore
