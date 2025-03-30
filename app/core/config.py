@@ -31,6 +31,8 @@ class FastAPISettings(BaseSettings):
 class RedisSettings(BaseSettings):
     HOST: str
     PORT: int
+    DB: int = 0
+    EXPIRES_IN_SECONDS: int = 5 * 60
 
     class Config:
         env_file = ".env"
@@ -51,7 +53,7 @@ class DatabaseSettings(BaseSettings):
     ASYNC_DRIVER: str = "asyncpg"
     POOL_SIZE: int = 5
     MAX_OVERFLOW: int = 10
-    ECHO: bool = True
+    ECHO: bool = False
 
     @property
     def CONNECTION_URL(self) -> str:
@@ -101,7 +103,7 @@ class LinksServiceSettings(BaseSettings):
 class Settings(BaseSettings):
     app_setings: AppSettings = AppSettings()
     fastapi_settings: FastAPISettings = FastAPISettings()
-    # redis_settings: RedisSettings = RedisSettings()
+    redis_settings: RedisSettings = RedisSettings()
     db_settings: DatabaseSettings = DatabaseSettings()
     jwt_settings: JWTSettings = JWTSettings()
     links_service_settings: LinksServiceSettings = LinksServiceSettings()

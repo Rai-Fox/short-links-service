@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timezone
 from datetime import datetime
 from typing import Optional
 from pydantic import BaseModel, HttpUrl, Field, field_validator
@@ -11,7 +11,7 @@ class LinkCreate(BaseModel):
 
     @field_validator("expires_at")
     def check_expires_at(cls, value):
-        if value and value < datetime.now():
+        if value and value < datetime.now(timezone.utc):
             raise ValueError("expires_at must be a future datetime")
         return value
 
@@ -104,7 +104,7 @@ class Link(BaseModel):
     created_at: datetime
     clicks: int = Field(ge=0)
     last_used_at: datetime | None = None
-    created_by: str
+    created_by: str | None
 
 
 class LinkSearchResponse(BaseModel):
@@ -126,7 +126,7 @@ class ExpiredLinksResponse(BaseModel):
     expired_links: list[Link] = Field(default_factory=list)
 
 
-class LinkInDB(LinkCreate):
+class LinkInDB(BaseModel):
     """
     Model for a link in the database.
     It includes the original URL, short URL, and expiration time.

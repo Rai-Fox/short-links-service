@@ -6,11 +6,16 @@ from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, ConfigDict
 import uvicorn
+from authx.exceptions import MissingTokenError
 
 from core.config import get_settings
+from core.logging import LOGGING_CONFIG, get_logger
 from api.v1 import links_router, auth_router
 from db import create_tables, drop_tables
 from db.repositories.links import clean_up_unused_links, clean_up_expired_links
+
+
+logger = get_logger(__name__)
 
 
 @asynccontextmanager
@@ -40,7 +45,9 @@ app.include_router(auth_router, prefix="/v1/auth", tags=["auth"])
 class StatusResponse(BaseModel):
     status: str
 
-    model_config = ConfigDict(json_schema_extra={"examples": [{"status": "App healthy"}]})
+    model_config = ConfigDict(
+        json_schema_extra={"examples": [{"status": "App healthy"}]}
+    )
 
 
 @app.get("/", response_model=StatusResponse)
@@ -54,11 +61,32 @@ async def base_exception_handler(request: Request, exc: Exception):
     Global exception handler for the application.
     For debugging purposes only.
     """
+    logger.error(f"Unexpected error: {exc},\n tb:\n {traceback.format_exc()}")
     return JSONResponse(
         status_code=400,
-        content={"detail": str(exc), "tb": traceback.format_exc()},
+        content={"detail": str(exc)},
+    )
+
+
+@app.exception_handler(MissingTokenError)
+async def missing_token_exception_handler(request: Request, exc: MissingTokenError):
+    """
+    Exception handler for MissingTokenError.
+    """
+    logger.error(f"Missing token error: {exc}")
+    return JSONResponse(
+        status_code=403,
+        content={
+            "detail": "You are not authorized to access this resource. Please login."
+        },
     )
 
 
 if __name__ == "__main__":
-    uvicorn.run(app, host=get_settings().fastapi_settings.HOST, port=get_settings().fastapi_settings.PORT)
+    uvicorn.run(
+        app,
+        host=get_settings().fastapi_settings.HOST,
+        port=get_settings().fastapi_settings.PORT,
+        log_level="debug",
+        log_config=LOGGING_CONFIG,
+    )

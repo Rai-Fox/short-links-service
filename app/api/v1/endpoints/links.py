@@ -1,6 +1,7 @@
 import traceback
 from fastapi import APIRouter, Body, Depends, Path, Query, HTTPException
 from fastapi.responses import RedirectResponse, Response
+from authx.exceptions import MissingTokenError
 
 from api.v1.schemas.links import (
     ExpiredLinksResponse,
@@ -41,9 +42,14 @@ async def search_links(
         result = await links_service.search_link(original_url=original_link)
         return result
     except Exception as e:
-        logger.error(f"Unexpected error during searching link {original_link}: {str(e)} {traceback.format_exc()}")
+        logger.error(
+            f"Unexpected error during searching link {original_link}: {str(e)} {traceback.format_exc()}"
+        )
         # raise HTTPException(status_code=500, detail=f"Internal server error}")
-        raise HTTPException(status_code=500, detail=f"Internal server error - {str(e)} - {traceback.format_exc()}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Internal server error - {str(e)} - {traceback.format_exc()}",
+        )
 
 
 @links_router.get("/expired", response_model=ExpiredLinksResponse)
@@ -57,9 +63,14 @@ async def get_expired_links(
         expired_links = await links_service.get_expired_links()
         return expired_links
     except Exception as e:
-        logger.error(f"Unexpected error during fetching expired links: {str(e)} {traceback.format_exc()}")
+        logger.error(
+            f"Unexpected error during fetching expired links: {str(e)} {traceback.format_exc()}"
+        )
         # raise HTTPException(status_code=500, detail=f"Internal server error}")
-        raise HTTPException(status_code=500, detail=f"Internal server error - {str(e)} - {traceback.format_exc()}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Internal server error - {str(e)} - {traceback.format_exc()}",
+        )
 
 
 @links_router.post("/shorten")
@@ -80,10 +91,14 @@ async def shorten_link(
         )
         return short_code
     except ShortLinkAlreadyExistsException:
-        logger.error(f"Cannot shorten link {short_code_create.original_url}: Short link already exists.")
+        logger.error(
+            f"Cannot shorten link {short_code_create.original_url}: Short link already exists."
+        )
         raise
     except InvalidShortLinkException:
-        logger.error(f"Cannot shorten link {short_code_create.original_url}: Invalid short link format.")
+        logger.error(
+            f"Cannot shorten link {short_code_create.original_url}: Invalid short link format."
+        )
         raise
     except Exception as e:
         logger.error(
@@ -91,7 +106,10 @@ async def shorten_link(
             f" {str(e)} {traceback.format_exc()}"
         )
         # raise HTTPException(status_code=500, detail=f"Internal server error}")
-        raise HTTPException(status_code=500, detail=f"Internal server error - {str(e)} - {traceback.format_exc()}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Internal server error - {str(e)} - {traceback.format_exc()}",
+        )
 
 
 @links_router.get("/{short_code}")
@@ -112,10 +130,14 @@ async def get_short_code(
         raise
     except Exception as e:
         logger.error(
-            f"Unexpected error during redirecting from short link {short_code}:" f" {str(e)} {traceback.format_exc()}"
+            f"Unexpected error during redirecting from short link {short_code}:"
+            f" {str(e)} {traceback.format_exc()}"
         )
         # raise HTTPException(status_code=500, detail=f"Internal server error}")
-        raise HTTPException(status_code=500, detail=f"Internal server error - {str(e)} - {traceback.format_exc()}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Internal server error - {str(e)} - {traceback.format_exc()}",
+        )
 
 
 @links_router.get("/{short_code}/stats/")
@@ -128,20 +150,31 @@ async def get_link_stats(
     Get statistics for a given short link.
     """
     try:
-        return await links_service.get_link_stats(short_code=short_code, get_by=user.username)
+        return await links_service.get_link_stats(
+            short_code=short_code, get_by=user.username
+        )
     except ShortLinkNotFoundException:
         logger.error(f"Short link {short_code} not found.")
         raise
     except InvalidShortLinkException:
         logger.error(f"Invalid short link format: {short_code}")
         raise
+    except MissingTokenError:
+        logger.error(f"Missing bearer token error: {short_code}")
+        raise HTTPException(
+            status_code=403,
+            detail="You are not authorized to perform this action. Please log in.",
+        )
     except Exception as e:
         logger.error(
             f"Unexpected error during fetching stats for short link {short_code}:"
             f" {str(e)} {traceback.format_exc()}"
         )
         # raise HTTPException(status_code=500, detail=f"Internal server error}")
-        raise HTTPException(status_code=500, detail=f"Internal server error - {str(e)} - {traceback.format_exc()}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Internal server error - {str(e)} - {traceback.format_exc()}",
+        )
 
 
 @links_router.put("/{short_code}")
@@ -169,12 +202,22 @@ async def update_link(
     except InvalidShortLinkException:
         logger.error(f"Invalid short link format: {short_code}")
         raise
+    except MissingTokenError:
+        logger.error(f"Missing bearer token error: {short_code}")
+        raise HTTPException(
+            status_code=403,
+            detail="You are not authorized to perform this action. Please log in.",
+        )
     except Exception as e:
         logger.error(
-            f"Unexpected error during updating short link {short_code}:" f" {str(e)} {traceback.format_exc()}"
+            f"Unexpected error during updating short link {short_code}:"
+            f" {str(e)} {traceback.format_exc()}"
         )
         # raise HTTPException(status_code=500, detail=f"Internal server error}")
-        raise HTTPException(status_code=500, detail=f"Internal server error - {str(e)} - {traceback.format_exc()}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Internal server error - {str(e)} - {traceback.format_exc()}",
+        )
 
 
 @links_router.delete("/{short_code}")
@@ -196,9 +239,19 @@ async def delete_link(
     except InvalidShortLinkException:
         logger.error(f"Invalid short link format: {short_code}")
         raise
+    except MissingTokenError:
+        logger.error(f"Missing bearer token error: {short_code}")
+        raise HTTPException(
+            status_code=403,
+            detail="You are not authorized to perform this action. Please log in.",
+        )
     except Exception as e:
         logger.error(
-            f"Unexpected error during deleting short link {short_code}:" f" {str(e)} {traceback.format_exc()}"
+            f"Unexpected error during deleting short link {short_code}:"
+            f" {str(e)} {traceback.format_exc()}"
         )
         # raise HTTPException(status_code=500, detail=f"Internal server error}")
-        raise HTTPException(status_code=500, detail=f"Internal server error - {str(e)} - {traceback.format_exc()}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Internal server error - {str(e)} - {traceback.format_exc()}",
+        )

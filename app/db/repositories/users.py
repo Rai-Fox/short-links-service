@@ -15,7 +15,11 @@ class UsersRepository(BaseRepository):
             with session.begin():
                 logger.debug(f"Fetching user with username: {username}")
                 user = session.query(User).filter(User.username == username).first()
-                return user.__dict__ if user else None
+                return (
+                    {"username": user.username, "hashed_password": user.hashed_password}
+                    if user
+                    else None
+                )
 
     async def create_user(self, username: str, hashed_password: str) -> User:
         """
