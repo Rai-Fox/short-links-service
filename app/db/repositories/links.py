@@ -261,7 +261,11 @@ class LinksRepository(BaseRepository):
                 logger.debug("Checking for expired links")
                 query = (
                     update(Link)
-                    .where(Link.expires_at.is_not(None), Link.expires_at < func.now())
+                    .where(
+                        Link.is_active,
+                        Link.expires_at.is_not(None),
+                        Link.expires_at < func.now(),
+                    )
                     .values(
                         is_active=False,
                         expires_at=None,
@@ -282,6 +286,7 @@ class LinksRepository(BaseRepository):
                 query = (
                     update(Link)
                     .where(
+                        Link.is_active,
                         Link.last_used_at.is_not(None),
                         Link.last_used_at
                         < datetime.now(timezone.utc)
