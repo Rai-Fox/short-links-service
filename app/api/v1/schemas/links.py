@@ -104,7 +104,7 @@ class Link(BaseModel):
     created_at: datetime
     clicks: int = Field(ge=0)
     last_used_at: datetime | None = None
-    created_by: str
+    created_by: str | None
 
 
 class LinkSearchResponse(BaseModel):

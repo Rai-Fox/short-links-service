@@ -53,7 +53,7 @@ class DatabaseSettings(BaseSettings):
     ASYNC_DRIVER: str = "asyncpg"
     POOL_SIZE: int = 5
     MAX_OVERFLOW: int = 10
-    ECHO: bool = True
+    ECHO: bool = False
 
     @property
     def CONNECTION_URL(self) -> str:

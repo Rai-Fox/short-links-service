@@ -1,6 +1,59 @@
 import logging
 import logging.config
 
+LOGGING_CONFIG = {
+    "version": 1,
+    "disable_existing_loggers": False,
+    "formatters": {
+        "default": {
+            "()": "uvicorn.logging.DefaultFormatter",
+            "fmt": "%(asctime)s - %(name)s - %(levelprefix)s %(message)s",
+            "use_colors": True,
+        },
+        "custom": {
+            "()": "core.logging.CustomFormatter",
+        },
+    },
+    "handlers": {
+        "default": {
+            "formatter": "default",
+            "class": "logging.StreamHandler",
+            "stream": "ext://sys.stdout",
+        },
+        "custom_handler": {
+            "formatter": "custom",
+            "class": "logging.StreamHandler",
+            "stream": "ext://sys.stdout",
+        },
+    },
+    "loggers": {
+        "uvicorn": {
+            "handlers": ["default"],
+            "level": "INFO",
+            "propagate": False,
+        },
+        "uvicorn.error": {
+            "handlers": ["default"],
+            "level": "INFO",
+            "propagate": False,
+        },
+        "uvicorn.access": {
+            "handlers": ["default"],
+            "level": "INFO",
+            "propagate": False,
+        },
+        "my_fastapi_app": {
+            "handlers": ["custom_handler"],
+            "level": "DEBUG",
+            "propagate": False,
+        },
+    },
+    "root": {
+        "handlers": ["custom_handler"],
+        "level": "DEBUG",
+    },
+}
+
 
 class CustomFormatter(logging.Formatter):
 
@@ -9,7 +62,9 @@ class CustomFormatter(logging.Formatter):
     red = "\x1b[31;20m"
     bold_red = "\x1b[31;1m"
     reset = "\x1b[0m"
-    format = "%(asctime)s - %(name)s - %(levelname)s - %(message)s (%(filename)s:%(lineno)d)"
+    format = (
+        "%(asctime)s - %(name)s - %(levelname)s - %(message)s (%(filename)s:%(lineno)d)"
+    )
 
     FORMATS = {
         logging.DEBUG: grey + format + reset,
@@ -29,10 +84,6 @@ def get_logger(name: str) -> logging.Logger:
     """
     Get a logger with the specified name.
     """
+    logging.config.dictConfig(LOGGING_CONFIG)
     logger = logging.getLogger(name)
-    if not logger.hasHandlers():
-        handler = logging.StreamHandler()
-        handler.setFormatter(CustomFormatter())
-        logger.addHandler(handler)
-        logger.setLevel(logging.DEBUG)
     return logger
