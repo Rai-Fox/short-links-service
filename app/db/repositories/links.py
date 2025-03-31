@@ -200,6 +200,15 @@ class LinksRepository(BaseRepository):
                             "last_used_at": link.last_used_at,
                         }
                     )
+                cached_link = self.get_original_link_from_cache(short_code)
+                if cached_link:
+                    cached_link.clicks += 1
+                    cached_link.last_used_at = datetime.now(timezone.utc)
+                    self.set_link_to_cache(short_code, cached_link)
+                else:
+                    logger.debug(
+                        f"Link with short_code {short_code} not found in cache."
+                    )
 
     async def get_link_stats(self, short_code: str, get_by: str | None) -> dict | None:
         """
