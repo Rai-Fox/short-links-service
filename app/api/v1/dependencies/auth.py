@@ -1,42 +1,112 @@
-from typing import Callable, Awaitable
-
-from fastapi import Depends, Request
-
 from authx import RequestToken
+from fastapi import Depends, HTTPException, Request, status
+
+from authx.exceptions import MissingTokenError, JWTDecodeError
 
 from db.repositories.users import UsersRepository, get_users_repository
+from db.models.users import User
 from api.v1.services.auth import AuthService
+from api.v1.exceptions.auth import (
+    ExpiredTokenException,
+    MissingTokenException,
+    InvalidTokenException,
+)
 from core.security import get_security, TokenData
+from core.logging import get_logger
+
+logger = get_logger(__name__)
 
 
 def get_auth_service(users_repository: UsersRepository = Depends(get_users_repository)) -> AuthService:
     return AuthService(users_repository=users_repository)
 
 
-TokenGetter = Callable[[Request], Awaitable[RequestToken]]
-
-token_getter: TokenGetter = get_security().get_token_from_request(type="access", optional=True)
-
-required_token_getter: TokenGetter = get_security().get_token_from_request(type="access", optional=False)
+security = get_security()
 
 
-def get_current_user(
-    request: Request,
-    token: RequestToken | None = Depends(token_getter),
+# Вспомогательная зависимость для получения токена из запроса
+async def _get_access_token_from_request_dependency(request: Request) -> RequestToken:
+    """
+    Internal dependency to extract the access token string using AuthX method.
+    Raises MissingTokenError if the token is not found.
+    """
+    try:
+        request_token = await security.get_access_token_from_request(request=request)
+        return request_token
+    except MissingTokenError:
+        logger.debug("MissingTokenError caught by _get_access_token_from_request_dependency")
+        raise
+
+
+async def get_current_user(
+    token_dependency: RequestToken | None = Depends(_get_access_token_from_request_dependency),
+    users_repository: UsersRepository = Depends(get_users_repository),
 ) -> TokenData | None:
     """
-    Get the current user from the request token.
+    FastAPI dependency: Get current user from optional token.
+    Verifies token and fetches user data asynchronously from DB. Returns None if no token or invalid.
     """
-    if token:
-        return get_security().verify_token(token)
-    return None
+
+    token: RequestToken | None = None
+    try:
+        token = token_dependency
+    except MissingTokenError:
+        logger.debug("No token found for optional user.")
+        return None  # Treat as invalid/anonymous
+
+    try:
+        username = security.verify_token(token=token).sub
+        user: User | None = await users_repository.get_by_username(username=username)
+
+        if user is None:
+            logger.warning(f"Optional token valid for user {username}, but user not found in DB.")
+            return None  # Treat as invalid/anonymous
+
+        return TokenData(username=user.username)
+
+    except MissingTokenError:
+        logger.debug("MissingTokenError caught by get_current_user")
+        return None
+    except JWTDecodeError as e:
+        logger.debug(f"ExpiredSignatureError caught by get_current_user: {e}")
+        return None
+    except Exception as e:
+        logger.error(f"Required token validation/DB lookup failed: {e}", exc_info=True)
+        return None
 
 
-def get_required_current_user(
-    request: Request,
-    token: RequestToken = Depends(required_token_getter),
+async def get_required_current_user(
+    # Dependency to get the token string itself (required)
+    token: RequestToken = Depends(security.get_access_token_from_request),
+    users_repository: UsersRepository = Depends(get_users_repository),
 ) -> TokenData:
     """
-    Get the current user from the request token.
+    FastAPI dependency: Get current user from required token.
+    Verifies token, fetches user data async from DB. Raises 401 HTTPException if invalid.
     """
-    return get_security().verify_token(token)
+    try:
+        username = security.verify_token(token=token).sub
+        user: User | None = await users_repository.get_by_username(username=username)
+
+        if user is None:
+            logger.error(f"Required token valid for user {username}, but user not found in DB.")
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Invalid authentication credentials",
+                headers={"WWW-Authenticate": "Bearer"},
+            )
+
+        return TokenData(username=user.username)
+    except MissingTokenError:
+        logger.debug("MissingTokenError caught by get_required_current_user")
+        raise MissingTokenException(detail="Missing token")
+    except JWTDecodeError as e:
+        logger.debug(f"ExpiredSignatureError caught by get_required_current_user: {e}")
+        raise ExpiredTokenException(detail="Token has expired")
+    except Exception as e:
+        logger.error(f"Required token validation/DB lookup failed: {e}", exc_info=True)
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid authentication credentials",
+            headers={"WWW-Authenticate": "Bearer"},
+        )

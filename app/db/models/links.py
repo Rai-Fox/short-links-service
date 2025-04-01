@@ -8,8 +8,8 @@ class Link(Base):
     __tablename__ = "links"
     __table_args__ = {"extend_existing": True}
 
-    link_id = Column(Integer, primary_key=True, index=True, autoincrement=True)
-    short_code = Column(String, primary_key=True, index=True, nullable=False)
+    link_id = Column(Integer, primary_key=True, autoincrement=True)
+    short_code = Column(String, index=True, nullable=False)
     original_url = Column(String, nullable=False)
     created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())

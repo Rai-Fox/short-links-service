@@ -28,13 +28,16 @@ class AuthService:
 
     async def login_user(self, user: UserLogin) -> Token:
         logger.info(f"Logging in user: {user.username}")
-        db_user: dict = await self.users_repository.get_by_username(user.username)
+        db_user: User = await self.users_repository.get_by_username(user.username)
 
         if not db_user:
             logger.warning(f"User {user.username} not found")
             raise UserNotFoundException(f"User {user.username} not found")
 
-        db_user: UserInDB = UserInDB(**db_user)
+        db_user: UserInDB = UserInDB(
+            username=db_user.username,
+            hashed_password=db_user.hashed_password,
+        )
 
         if not db_user.verify_password(user.password):
             logger.warning(f"Invalid credentials for user {user.username}")

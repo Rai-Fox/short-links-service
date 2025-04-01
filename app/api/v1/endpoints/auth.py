@@ -1,3 +1,4 @@
+import traceback
 from fastapi import Depends, APIRouter, HTTPException
 
 from api.v1.schemas.auth import (
@@ -28,7 +29,7 @@ async def register_user(credentials: UserRegister, auth_service: AuthService = D
         raise
     except Exception as e:
         logger.error(
-            f"Unexpected error during registration for user {credentials.username}: {str(e)} {e.__traceback__}"
+            f"Unexpected error during registration for user {credentials.username}: {str(e)} {traceback.format_exc()}"
         )
         raise HTTPException(status_code=500, detail="Internal server error")
 
@@ -44,5 +45,5 @@ async def login_user(credentials: UserLogin, auth_service: AuthService = Depends
         logger.error(f"Cannot login user {credentials.username}: User not found.")
         raise
     except Exception as e:
-        logger.error(f"Unexpected error during login for user {credentials.username}: {str(e)} {e.__traceback__}")
+        logger.error(f"Unexpected error during login for user {credentials.username}: {str(e)} {traceback.format_exc()}")
         raise HTTPException(status_code=500, detail="Internal server error")

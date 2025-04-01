@@ -1,19 +1,14 @@
-from core.config import get_settings
+from sqlalchemy.ext.asyncio import AsyncSession
 from core.logging import get_logger
-from db import session, async_session
 
 logger = get_logger(__name__)
 
 
 class BaseRepository:
-    def get_connection(self):
-        """
-        Returns a database connection.
-        """
-        return session()
+    session: AsyncSession
 
-    def get_async_connection(self):
+    def __init__(self, session: AsyncSession):
         """
-        Returns an async database connection.
+        Initialize the repository with an async database session.
         """
-        return async_session()
+        self.session = session
