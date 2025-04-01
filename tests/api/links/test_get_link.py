@@ -29,7 +29,6 @@ async def test_get_link_from_cache(client, created_link):
     # Simulate storing the link in the cache
 
     response = await client.get(f"/v1/links/{short_code}")
-    asyncio.sleep(3)
     response = await client.get(f"/v1/links/{short_code}")
     assert response.status_code == 307, f"Failed to get link from cache: {response.text}"
     assert response.headers["Location"] == "https://vk.ru/", "Redirect location mismatch"

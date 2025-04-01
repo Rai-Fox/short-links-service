@@ -89,7 +89,6 @@ async def test_check_unused_links(
     )
 
     await db_session.execute(stmt)
-    db_session.commit()
 
     # Run the cleanup task
     await links_repository.check_unused_links()
