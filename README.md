@@ -25,9 +25,18 @@
 ## 📂 Установка и запуск
 
 ### Через Docker:
+1. Убедитесь, что у вас установлен Docker и Docker Compose.
+2. Склонируйте репозиторий и перейдите в директорию проекта:
 ```bash
-git clone https://github.com/Rai-Fox/short-links-service.git
-cd short-links-service
+  git clone https://github.com/Rai-Fox/short-links-service.git
+  cd short-links-service
+  touch .env secrets/jwt_secret_key.txt secrets/db_user.txt secrets/db_password.txt
+```
+3. Заполните `.env`, `docker-compose.yml` и файлы в `secrets/` с учётом конфигурации. 
+
+4. Затем выполните:
+
+```
 docker-compose up --build -d
 ```
 
