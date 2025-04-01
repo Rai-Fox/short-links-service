@@ -4,6 +4,9 @@ from typing import Optional
 from pydantic import BaseModel, HttpUrl, Field, field_validator
 
 
+from api.v1.exceptions.links import InvalidShortLinkException
+
+
 class LinkCreate(BaseModel):
     original_url: HttpUrl
     custom_alias: str | None = None
@@ -17,17 +20,14 @@ class LinkCreate(BaseModel):
 
     @field_validator("custom_alias")
     def check_custom_alias(cls, value):
-        if not value:
-            return value
-
         if not value.isalnum():
-            raise ValueError("custom_alias must be alphanumeric")
+            raise InvalidShortLinkException("custom_alias must be alphanumeric")
         if len(value) < 3 or len(value) > 20:
-            raise ValueError("custom_alias must be between 3 and 20 characters")
+            raise InvalidShortLinkException("custom_alias must be between 3 and 20 characters")
         if value.lower() == "search":
-            raise ValueError("custom_alias cannot be 'search'")
+            raise InvalidShortLinkException("custom_alias cannot be 'search'")
         if value.lower() == "expired":
-            raise ValueError("custom_alias cannot be 'expired'")
+            raise InvalidShortLinkException("custom_alias cannot be 'expired'")
 
         return value
 
@@ -71,7 +71,7 @@ class LinkUpdate(BaseModel):
 
     @field_validator("expires_at")
     def check_expires_at(cls, value):
-        if value and value < datetime.now():
+        if value and value < datetime.now(timezone.utc):
             raise ValueError("expires_at must be a future datetime")
         return value
 

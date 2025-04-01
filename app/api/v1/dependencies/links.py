@@ -1,5 +1,7 @@
 from fastapi import Depends
+from redis import Redis
 
+from core.redis import get_redis_client
 from db.repositories.links import LinksRepository, get_links_repository
 from api.v1.services.links import LinksService
 

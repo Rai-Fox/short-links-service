@@ -23,6 +23,7 @@ services:
       - JWT_SECRET_KEY=/run/secrets/jwt_secret_key
       - JWT_ALGORITHM=HS256
       - JWT_ACCESS_TOKEN_EXPIRE_MINUTES=5
+      - LINKS_SERVICE_UNUSED_LINKS_THRESHOLD=120
     secrets:
        - db_user
        - db_password

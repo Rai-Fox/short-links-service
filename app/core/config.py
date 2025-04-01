@@ -60,14 +60,10 @@ class DatabaseSettings(BaseSettings):
 
     @property
     def CONNECTION_URL(self) -> str:
-        if self.TYPE == 'sqlite':
-            return f"{self.TYPE}:///:memory:"
         return f"{self.TYPE}+{self.DRIVER}://{self.USER}:{self.PASSWORD}@{self.HOST}:{self.PORT}/{self.NAME}"
 
     @property
     def ASYNC_CONNECTION_URL(self) -> str:
-        if self.TYPE == 'sqlite':
-            return f"{self.TYPE}+{self.ASYNC_DRIVER}:///:memory:"
         return f"{self.TYPE}+{self.ASYNC_DRIVER}://{self.USER}:{self.PASSWORD}@{self.HOST}:{self.PORT}/{self.NAME}"
 
     model_config = ConfigDict(

@@ -80,16 +80,15 @@ async def base_exception_handler(request: Request, exc: Exception):
         status_code=500,
         content={"detail": "Internal Server Error"},
     )
-
+    
 
 @app.exception_handler(AuthXException)
 async def authx_exception_handler(request: Request, exc: AuthXException):
-    """Handler for AuthX authentication/authorization errors."""
-    logger.warning(f"AuthX exception for {request.url.path}: {exc.detail} (Status: {exc.status_code})")
+    """Handler for AuthX exceptions. Logs the error and returns 401."""
+    logger.error(f"AuthX exception during request {request.url.path}: {exc}", exc_info=True)
     return JSONResponse(
-        status_code=exc.status_code,
-        content={"detail": exc.detail},
-        headers=getattr(exc, "headers", None),  # Include headers like WWW-Authenticate if present
+        status_code=401,
+        content={"detail": "Unauthorized"},
     )
 
 

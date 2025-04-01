@@ -24,14 +24,6 @@ async def register_user(credentials: UserRegister, auth_service: AuthService = D
     except UserAlreadyExistsException:
         logger.error(f"Cannot register user {credentials.username}: User already exists.")
         raise
-    except InvalidCredentialsException:
-        logger.error(f"Cannot register user {credentials.username}: Invalid credentials.")
-        raise
-    except Exception as e:
-        logger.error(
-            f"Unexpected error during registration for user {credentials.username}: {str(e)} {traceback.format_exc()}"
-        )
-        raise HTTPException(status_code=500, detail="Internal server error")
 
 
 @auth_router.post("/login", response_model=Token)
@@ -44,6 +36,3 @@ async def login_user(credentials: UserLogin, auth_service: AuthService = Depends
     except UserNotFoundException:
         logger.error(f"Cannot login user {credentials.username}: User not found.")
         raise
-    except Exception as e:
-        logger.error(f"Unexpected error during login for user {credentials.username}: {str(e)} {traceback.format_exc()}")
-        raise HTTPException(status_code=500, detail="Internal server error")

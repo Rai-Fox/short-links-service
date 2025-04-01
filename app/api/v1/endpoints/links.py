@@ -17,6 +17,7 @@ from api.v1.schemas.links import (
 from api.v1.services.links import LinksService
 from api.v1.dependencies.links import get_links_service
 from api.v1.exceptions.links import (
+    LinkPermissionDeniedException,
     ShortLinkNotFoundException,
     InvalidShortLinkException,
     ShortLinkAlreadyExistsException,
@@ -38,12 +39,8 @@ async def search_links(
     """
     Search for a short links by its original URL.
     """
-    try:
-        result = await links_service.search_link(original_url=original_link)
-        return result
-    except Exception as e:
-        logger.error(f"Unexpected error during searching link {original_link}: {str(e)} {traceback.format_exc()}")
-        raise HTTPException(status_code=500, detail=f"Internal server error")
+    result = await links_service.search_link(original_url=original_link)
+    return result
 
 
 @links_router.get("/expired", response_model=ExpiredLinksResponse)
@@ -53,12 +50,8 @@ async def get_expired_links(
     """
     Get all expired links.
     """
-    try:
-        expired_links = await links_service.get_expired_links()
-        return expired_links
-    except Exception as e:
-        logger.error(f"Unexpected error during fetching expired links: {str(e)} {traceback.format_exc()}")
-        raise HTTPException(status_code=500, detail=f"Internal server error")
+    expired_links = await links_service.get_expired_links()
+    return expired_links
 
 
 @links_router.post("/shorten")
@@ -66,7 +59,7 @@ async def shorten_link(
     short_code_create: LinkCreate = Body(...),
     links_service: LinksService = Depends(get_links_service),
     user: TokenData | None = Depends(get_current_user),
-) -> RedirectResponse:
+) -> LinkCreateResponse:
     """
     Shorten a given link.
     """
@@ -81,15 +74,28 @@ async def shorten_link(
     except ShortLinkAlreadyExistsException:
         logger.error(f"Cannot shorten link {short_code_create.original_url}: Short link already exists.")
         raise
-    except InvalidShortLinkException:
-        logger.error(f"Cannot shorten link {short_code_create.original_url}: Invalid short link format.")
+
+
+@links_router.get("/{short_code}/stats")
+async def get_link_stats(
+    short_code: str = Path(),
+    links_service: LinksService = Depends(get_links_service),
+    user: TokenData = Depends(get_required_current_user),
+) -> LinkStats:
+    """
+    Get statistics for a given short link.
+    """
+    try:
+        return await links_service.get_link_stats(short_code=short_code, get_by=user.username)
+    except ShortLinkNotFoundException:
+        logger.error(f"Short link {short_code} not found.")
         raise
-    except Exception as e:
-        logger.error(
-            f"Unexpected error during shortening link {short_code_create.original_url}:"
-            f" {str(e)} {traceback.format_exc()}"
+    except PermissionError:
+        logger.error(f"Permission denied for user {user.username} on short link {short_code}.")
+        raise HTTPException(
+            status_code=403,
+            detail="You are not authorized to perform this action. Please log in.",
         )
-        raise HTTPException(status_code=500, detail=f"Internal server error")
 
 
 @links_router.get("/{short_code}")
@@ -105,54 +111,15 @@ async def get_short_code(
     except ShortLinkNotFoundException:
         logger.error(f"Short link {short_code} not found.")
         raise
-    except InvalidShortLinkException:
-        logger.error(f"Invalid short link format: {short_code}")
-        raise
-    except Exception as e:
-        logger.error(
-            f"Unexpected error during redirecting from short link {short_code}:" f" {str(e)} {traceback.format_exc()}"
-        )
-        raise HTTPException(status_code=500, detail=f"Internal server error")
-
-
-@links_router.get("/{short_code}/stats/")
-async def get_link_stats(
-    short_code: str = Path(),
-    links_service: LinksService = Depends(get_links_service),
-    user: TokenData = Depends(get_required_current_user),
-) -> LinkStats:
-    """
-    Get statistics for a given short link.
-    """
-    try:
-        return await links_service.get_link_stats(short_code=short_code, get_by=user.username)
-    except ShortLinkNotFoundException:
-        logger.error(f"Short link {short_code} not found.")
-        raise
-    except InvalidShortLinkException:
-        logger.error(f"Invalid short link format: {short_code}")
-        raise
-    except PermissionError:
-        logger.error(f"Permission denied for user {user.username} on short link {short_code}.")
-        raise HTTPException(
-            status_code=403,
-            detail="You are not authorized to perform this action. Please log in.",
-        )
-    except Exception as e:
-        logger.error(
-            f"Unexpected error during fetching stats for short link {short_code}:"
-            f" {str(e)} {traceback.format_exc()}"
-        )
-        raise HTTPException(status_code=500, detail=f"Internal server error")
 
 
 @links_router.put("/{short_code}")
 async def update_link(
+    link_data: LinkUpdate,
     short_code: str = Path(),
-    link_data: LinkUpdate = Body(...),
     links_service: LinksService = Depends(get_links_service),
     user: TokenData = Depends(get_required_current_user),
-) -> LinkCreateResponse:
+) -> Response:
     """
     Update a given short link.
     """
@@ -168,20 +135,12 @@ async def update_link(
     except ShortLinkNotFoundException:
         logger.error(f"Short link {short_code} not found.")
         raise
-    except InvalidShortLinkException:
-        logger.error(f"Invalid short link format: {short_code}")
-        raise
-    except PermissionError:
+    except LinkPermissionDeniedException:
         logger.error(f"Permission denied for user {user.username} on short link {short_code}.")
         raise HTTPException(
             status_code=403,
             detail="You are not authorized to perform this action. Please log in.",
         )
-    except Exception as e:
-        logger.error(
-            f"Unexpected error during updating short link {short_code}:" f" {str(e)} {traceback.format_exc()}"
-        )
-        raise HTTPException(status_code=500, detail=f"Internal server error")
 
 
 @links_router.delete("/{short_code}")
@@ -200,17 +159,9 @@ async def delete_link(
     except ShortLinkNotFoundException:
         logger.error(f"Short link {short_code} not found.")
         raise
-    except InvalidShortLinkException:
-        logger.error(f"Invalid short link format: {short_code}")
-        raise
-    except PermissionError:
+    except LinkPermissionDeniedException:
         logger.error(f"Permission denied for user {user.username} on short link {short_code}.")
         raise HTTPException(
             status_code=403,
             detail="You are not authorized to perform this action. Please log in.",
         )
-    except Exception as e:
-        logger.error(
-            f"Unexpected error during deleting short link {short_code}:" f" {str(e)} {traceback.format_exc()}"
-        )
-        raise HTTPException(status_code=500, detail=f"Internal server error")
